@@ -1,0 +1,35 @@
+.chat-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    align-items: center;
+}
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.input-container {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.chat-input {
+    flex: 1;
+    margin-right: 10px;
+    display: flex;
+    justify-content: space-around;
+}
+
+.chat-input input {
+    width: 85%;
+}
+
+.chat-input button {
+    width: 10%;
+}
