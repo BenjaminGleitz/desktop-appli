@@ -1,10 +1,13 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
+import {io} from "socket.io-client";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
+
+const socket = io("http://localhost:3000");
 
 const createWindow = () => {
   // Create the browser window.
@@ -25,6 +28,20 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  const handleMessage = (message: unknown) => {
+    console.log("Received message", message);
+
+    mainWindow.webContents.send("socket-message", message);
+  }
+  socket.on("message", handleMessage);
+  mainWindow.on("close", () => {
+    socket.off("message", handleMessage);
+  })
+
+  ipcMain.on("socket-message", (_, message) => {
+    socket.emit("message", message);
+  });
 };
 
 // This method will be called when Electron has finished

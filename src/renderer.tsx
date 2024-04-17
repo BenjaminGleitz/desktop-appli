@@ -28,10 +28,15 @@
 
 import './index.css';
 import { createRoot } from 'react-dom/client';
-import {ChatScreen} from "./screens/chatScreen";
+import { ChatScreen } from './screens/chatScreen';
+import { SocketProvider } from "./providers/SocketProvider";
 
 const rootElement = document.getElementById('root');
 
 if (rootElement) {
-    createRoot(rootElement).render(<ChatScreen />)
+    createRoot(rootElement).render(
+        <SocketProvider>
+            <ChatScreen/>
+        </SocketProvider>
+    );
 }
