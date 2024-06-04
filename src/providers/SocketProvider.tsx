@@ -1,44 +1,58 @@
-import { ReactNode, createContext, useContext, useMemo } from "react";
+import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import io, { Socket } from 'socket.io-client';
 
-export type AppSocket = {
-    onMessage(callback: (message: unknown) => void): () => void;
-    send(message: unknown): void;
+export type Message = {
+    id: number;
+    type: string;
+    content: string;
+    conversation_id: number; // Changed from room: string
+    author: string;
+    user_id: number;
 };
 
-// Define typings of code exposed by Electron on window object
-declare global {
-    interface Window {
-        MessageAPI: {
-            addMessageListener(callback: (message: unknown) => void): () => void;
-            send(message: unknown): void;
+interface AppSocketContext {
+    socket: Socket | null;
+    onMessage: (callback: (message: Message) => void) => void;
+    send: (message: Message) => void;
+}
+
+const SocketContext = createContext<AppSocketContext | null>(null);
+
+export const SocketProvider = ({ children }: { children: ReactNode }) => {
+    const [socket, setSocket] = useState<Socket | null>(null);
+
+    useEffect(() => {
+        const newSocket = io('http://localhost:3000');
+        setSocket(newSocket);
+        console.log('Socket connected')
+        return () => {
+            newSocket.close();
         };
-    }
-}
+    }, []);
 
-const context = createContext<AppSocket | null>(null);
+    const onMessage = (callback: (message: Message) => void) => {
+        if (!socket) return;
+        socket.on('message', callback);
+        console.log('Socket message received')
+    };
 
-export function SocketProvider({ children }: { children: ReactNode }) {
-    const appSocket = useMemo<AppSocket>(
-        () => ({
-            onMessage(callback) {
-                console.log("Attempting to add message listener...");
-                return window.MessageAPI.addMessageListener(callback);
-            },
-            send(message) {
-                console.log("Sending message:", message);
-                window.MessageAPI.send(message);
-            },
-        }),
-        []
+    const send = (message: Message) => {
+        if (!socket) return;
+        socket.emit('message', message);
+        console.log('Socket message sent', message)
+    };
+
+    return (
+        <SocketContext.Provider value={{ socket, onMessage, send }}>
+            {children}
+        </SocketContext.Provider>
     );
+};
 
-    return <context.Provider value={appSocket}>{children}</context.Provider>;
-}
-
-export function useSocket() {
-    const socket = useContext(context);
-    if (!socket) {
-        throw new Error("useSocket must be used within a SocketProvider");
+export const useSocket = () => {
+    const context = useContext(SocketContext);
+    if (!context) {
+        throw new Error('useSocket must be used within a SocketProvider');
     }
-    return socket;
-}
+    return context;
+};
