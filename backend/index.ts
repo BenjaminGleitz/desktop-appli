@@ -5,16 +5,12 @@ import cors from 'cors';
 import mysql, {RowDataPacket, ResultSetHeader} from 'mysql2/promise';
 
 async function main() {
-    // Configurer la connexion MySQL
     const db = await mysql.createConnection({
         host: 'localhost',
         user: 'root',
         password: 'benjadance',
         database: 'discord'
     });
-
-    //creer la base de donnée
-    await db.execute('CREATE DATABASE IF NOT EXISTS discord');
 
     await db.execute(`
     CREATE TABLE IF NOT EXISTS user (
@@ -36,6 +32,7 @@ async function main() {
         content TEXT,
         conversation_id INT,
         user_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user(id),
         FOREIGN KEY (conversation_id) REFERENCES conversation(id)
     )
@@ -91,20 +88,18 @@ async function main() {
         }
     });
 
-    // envoi d'un message
+    // envoi d'un message (inutilisé)
     app.post('/send-message', async (req, res) => {
         const { user_id, content, conversation_id } = req.body;
         console.log('Received message via HTTP POST:', req.body);
 
-        // Sauvegarde du message dans la bdd et récupère l'ID généré
         const [result] = await db.execute<ResultSetHeader>('INSERT INTO messages (content, conversation_id, user_id) VALUES (?, ?, ?)', [content, conversation_id, user_id]);
         const messageId = result.insertId;
 
         const [userRows] = await db.execute<RowDataPacket[]>('SELECT username FROM user WHERE id = ?', [user_id]);
         const author = userRows[0].username;
 
-        // Émet le message à tous les clients connectés via Socket.IO avec l'ID généré
-        const message = { id: messageId, author, content, conversation_id };
+        const message = { id: messageId, author, content, conversation_id, created_at: new Date() };
         io.emit('message', message);
         res.status(200).json(message);
     });
@@ -124,17 +119,17 @@ async function main() {
         }
     });
 
-    // Route pour récupérer les messages
     app.get('/messages', async (req, res) => {
-        const {conversation_id} = req.query;
+        const { conversation_id } = req.query;
         if (!conversation_id) {
             return res.status(400).send('Conversation_id parameter is required');
         }
         const [rows] = await db.execute<RowDataPacket[]>(`
-        SELECT messages.id, messages.content, messages.conversation_id, user.username as author 
+        SELECT messages.id, messages.content, messages.conversation_id, messages.created_at, user.username as author 
         FROM messages 
         JOIN user ON messages.user_id = user.id 
         WHERE conversation_id = ?
+        ORDER BY messages.created_at ASC
     `, [conversation_id]);
         res.json(rows);
     });
@@ -159,7 +154,7 @@ async function main() {
             const author = userRows[0].username;
 
             // Emit the message to all connected clients with the generated ID
-            io.emit('message', { id: messageId, author, content: message.content, conversation_id: message.conversation_id });
+            io.emit('message', { id: messageId, author, content: message.content, conversation_id: message.conversation_id, created_at: new Date() });
         });
     });
 
@@ -171,7 +166,7 @@ async function main() {
             return res.status(400).send('Conversation_id parameter is required');
         }
         const [rows] = await db.execute<RowDataPacket[]>(`
-        SELECT messages.content, user.username as author 
+        SELECT messages.content, messages.created_at, user.username as author 
         FROM messages 
         JOIN user ON messages.user_id = user.id 
         WHERE conversation_id = ?

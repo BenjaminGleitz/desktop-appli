@@ -43,3 +43,29 @@
     flex-direction: column;
     justify-content: space-between;
 }
+
+.create-conversation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #292b2f;
+    border-bottom: 1px solid #202225;
+}
+
+.create-conversation input {
+    padding: 5px;
+    border-radius: 5px;
+    border: none;
+    background-color: #40444b;
+    color: white;
+}
+
+.create-conversation button {
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: none;
+    background-color: #5865f2;
+    color: white;
+    cursor: pointer;
+}

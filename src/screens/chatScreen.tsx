@@ -9,7 +9,26 @@ export function ChatScreen() {
     const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const { socket, onMessage } = useSocket();
+    const [newConversationTitle, setNewConversationTitle] = useState('');
 
+    const createConversation = async () => {
+        try {
+            const response = await fetch('http://localhost:4000/create-conversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title: newConversationTitle }),
+            });
+
+            const newConversation = await response.json();
+
+            setConversations((prevConversations) => [...prevConversations, newConversation]);
+            setNewConversationTitle('');
+        } catch (error) {
+            console.error('Error creating new conversation:', error);
+        }
+    };
     useEffect(() => {
         // Fetch conversations from your API
         const fetchConversations = async () => {
@@ -59,11 +78,20 @@ export function ChatScreen() {
                         <p>{conversation.lastMessage?.content}</p>
                     </div>
                 ))}
+                <div className={"create-conversation"}>
+                    <input
+                        type="text"
+                        placeholder="Create a new conversation"
+                        value={newConversationTitle}
+                        onChange={(e) => setNewConversationTitle(e.target.value)}
+                    />
+                    <button onClick={createConversation}>Create</button>
+                </div>
             </div>
             <div className="conversations-list">
                 {currentConversationId && (
                     <>
-                        <MessageList currentConversationId={currentConversationId} />
+                        <MessageList currentConversationId={currentConversationId}/>
                         <ChatInput
                             currentConversationId={currentConversationId}
                             onSend={(message) => console.log(message)}

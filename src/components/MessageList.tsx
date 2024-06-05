@@ -13,6 +13,7 @@ export type Message = {
     conversation_id: number; // Add this line
     author: string;
     user_id: number;
+    created_at: string; // Add this line
 };
 
 export function MessageList({ currentConversationId }: MessageListProps) {
@@ -34,7 +35,7 @@ export function MessageList({ currentConversationId }: MessageListProps) {
         };
 
         fetchMessages();
-    }, [currentConversationId]);
+    }, [socket, currentConversationId, onMessage]);
 
     useEffect(() => {
         const handleMessage = (message: Message) => {
@@ -57,7 +58,7 @@ export function MessageList({ currentConversationId }: MessageListProps) {
 
     return (
         <div>
-            {messages.filter(message => message.conversation_id === currentConversationId).map((message) => ( // Changed from message.room === currentRoom
+            {messages.map((message) => ( // Changed from message.room === currentRoom
                 <p key={message.id}>
                     <strong>{message.author}: </strong>{message.content}
                 </p>
